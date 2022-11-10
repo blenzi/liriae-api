@@ -1,7 +1,9 @@
 from fastapi import FastAPI, status, UploadFile, HTTPException
 from fastapi.responses import FileResponse  # StreamingResponse
-from .schemas import PdfElement, PdfInfo, Block
-# from .utils import open_file
+from pathlib import Path
+from .schemas import PdfElement, PdfInfo, TocTreeItem
+from .utils import get_pdf_info, get_pdf_element
+
 
 description = """
 Liseuse et recherche intelligente pour les autorités environnementales
@@ -10,34 +12,31 @@ API pour récupérer un fichier pdf et son contenu
 """
 
 
-app = FastAPI(title="LIRIAe API",
-              description=description)
+app = FastAPI(title="LIRIAe PDF API", description=description)
 
 
-pdf_list = [
-    {
-        "id": 1,
-        "name": "test.pdf",
-        "n_pages": 241
-    }
-]
+# pdf_list = [{"id": 1, "name": "test.pdf", "n_pages": 241}]
+pdf_list = [get_pdf_info(pdf_id=1, pdf="test.pdf")]
 
 
 @app.post("/pdf", response_model=PdfInfo)
 def upload_pdf(file: UploadFile):
+    "Not implemented"
     # TODO: add info as argument
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
     return {"filename": file.filename}
 
 
 @app.get("/pdf/{pdf_id}")
-async def get_pdf(pdf_id: int):
+async def get_pdf_by_id(pdf_id: int):
     """Return pdf file"""
     # raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
     # Get image from the database
     pdf_info = await get_pdf_info(pdf_id)
-    headers = {'Content-Disposition': 'attachment; filename="out.pdf"'}
-    return FileResponse(pdf_info["name"], headers=headers, media_type='application/pdf')
+    headers = {"Content-Disposition": 'attachment; filename="out.pdf"'}
+    return FileResponse(
+        Path("data") / pdf_info["name"], headers=headers, media_type="application/pdf"
+    )
     # def iterfile():
     #     with open_file(pdf_info["name"], 'rb') as pdf_file:
     #         yield from pdf_file
@@ -46,9 +45,22 @@ async def get_pdf(pdf_id: int):
 
 
 @app.get("/pdf/info/{pdf_id}", response_model=PdfInfo)
-async def get_pdf_info(pdf_id: int):
+async def get_pdf_info_by_id(pdf_id: int):
     """Return pdf file info"""
     return pdf_list[pdf_id - 1]
+
+
+@app.get("/pdf/toc_tree/{pdf_id}", response_model=list[TocTreeItem])
+async def get_toc_tree(pdf_id: int):
+    "Return the table of content in tree format"
+    toc = (await get_pdf_info_by_id(pdf_id)).toc
+    root = TocTreeItem(id=-1, title="")
+    for item in toc:
+        last = root
+        for _ in range(item.level - 1):
+            last = last.children[-1]
+        last.children.append(TocTreeItem(id=item.id, title=item.title))
+    return root.children
 
 
 @app.get("/pdf", response_model=list[PdfInfo])
@@ -57,25 +69,7 @@ def list_pdfs():
     return pdf_list
 
 
-@app.get("/pdf_elements", response_model=list[PdfElement])
-def get_pdf_elements(pdf_id: str):
-    """Return all elements from a pdf"""
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
-
-
-@app.get("/pdf_elements/{item_id}", response_model=PdfElement)
-def get_pdf_element(pdf_id: str, item_id: str):
+@app.get("/pdf_element/{item_id}", response_model=PdfElement)
+async def get_PDF_element(pdf_id: int, item_id: int, details: bool = False):
     """Return an element from a pdf"""
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
-    return {}
-
-
-# @app.get("/pdf_elements/details/{item_id}", response_model=PdfElementDetails)
-# def get_pdf_element_details(pdf_id: str, item_id: str):
-#     """Return details about pdf element: paragraphs, lines, word and the associated position, font, ..."""
-#     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
-#     return {}
-
-@app.get("/page_structure", response_model=list[Block])
-def get_page_structure(pdf_id: str, page: int):
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
+    return get_pdf_element(await get_pdf_info_by_id(pdf_id), item_id, details)
