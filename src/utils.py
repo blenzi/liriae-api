@@ -87,14 +87,13 @@ def get_pdf_info(pdf_id: int, pdf: str) -> PdfInfo:
     Return a PdfInfo object, with information about the PDF document.
     """
     with open_pdf(pdf) as doc:
+        toc = [get_toc_item(item_id, item) for item_id, item in enumerate(doc.get_toc(simple=False))]
         return PdfInfo(
             id=pdf_id,
             name=pdf,
             n_pages=doc.page_count,
-            toc=[
-                get_toc_item(item_id, item)
-                for item_id, item in enumerate(doc.get_toc(simple=False))
-            ],
+            toc=toc,
+            n_toc_items=len(toc),
         )
 
 

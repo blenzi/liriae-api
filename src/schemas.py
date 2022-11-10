@@ -25,6 +25,7 @@ class PdfInfo(BaseModel):
     name: str
     description: str | None = None
     n_pages: int
+    n_toc_items: int
     toc: list[TocItem]
 
 
