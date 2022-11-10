@@ -1,7 +1,7 @@
 from fastapi import FastAPI, status, UploadFile, HTTPException
 from fastapi.responses import FileResponse  # StreamingResponse
 from pathlib import Path
-from .schemas import PdfElement, PdfInfo
+from .schemas import PdfElement, PdfInfo, TocTreeItem
 from .utils import get_pdf_info, get_pdf_element
 
 
@@ -48,6 +48,19 @@ async def get_pdf_by_id(pdf_id: int):
 async def get_pdf_info_by_id(pdf_id: int):
     """Return pdf file info"""
     return pdf_list[pdf_id - 1]
+
+
+@app.get("/pdf/toc_tree/{pdf_id}", response_model=list[TocTreeItem])
+async def get_toc_tree(pdf_id: int):
+    "Return the table of content in tree format"
+    toc = (await get_pdf_info_by_id(pdf_id)).toc
+    root = TocTreeItem(id=-1, title="")
+    for item in toc:
+        last = root
+        for _ in range(item.level - 1):
+            last = last.children[-1]
+        last.children.append(TocTreeItem(id=item.id, title=item.title))
+    return root.children
 
 
 @app.get("/pdf", response_model=list[PdfInfo])

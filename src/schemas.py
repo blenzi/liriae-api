@@ -10,13 +10,20 @@ class Bbox(BaseModel):
     bbox: tuple[float, float, float, float] = (0, 0, 1, 1)
 
 
-class TocItem(_Position):
+class _TocItemBase(BaseModel):
+    "Base for table of content items"
     id: int
-    parent_id: int = -1
     title: str
+
+
+class TocItem(_TocItemBase, _Position):
+    parent_id: int = -1
     level: int  # 1-based
     page: int  # 0-based as used when loading the page
-    # parent_id: int  TODO
+
+
+class TocTreeItem(_TocItemBase):
+    children: list = []
 
 
 class PdfInfo(BaseModel):
