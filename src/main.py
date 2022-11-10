@@ -12,7 +12,7 @@ API pour récupérer un fichier pdf et son contenu
 """
 
 
-app = FastAPI(title="LIRIAe API", description=description)
+app = FastAPI(title="LIRIAe PDF API", description=description)
 
 
 # pdf_list = [{"id": 1, "name": "test.pdf", "n_pages": 241}]
