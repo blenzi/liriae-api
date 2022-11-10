@@ -55,22 +55,7 @@ def list_pdfs():
     return pdf_list
 
 
-# @app.get("/pdf_elements/{pdf_id}", response_model=list[PdfElement])
-# async def get_PDF_elements(pdf_id: int):
-#     """Return all elements from a pdf"""
-#     pdf_info = await get_PDF_info(pdf_id)
-#     return get_pdf_elements(pdf_info)
-#     # return [get_pdf_element(pdf_info, item_id, details=False) for item_id, _ in enumerate(pdf_info.toc)]
-
-
 @app.get("/pdf_element/{item_id}", response_model=PdfElement)
 async def get_PDF_element(pdf_id: int, item_id: int, details: bool = False):
     """Return an element from a pdf"""
     return get_pdf_element(await get_PDF_info(pdf_id), item_id, details)
-
-
-# @app.get("/pdf_elements/details/{item_id}", response_model=PdfElementDetails)
-# def get_pdf_element_details(pdf_id: int, item_id: str):
-#     """Return details about pdf element: paragraphs, lines, word and the associated position, font, ..."""
-#     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
-#     return {}
