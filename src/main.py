@@ -1,9 +1,9 @@
 from fastapi import FastAPI, status, UploadFile, HTTPException
 from fastapi.responses import FileResponse  # StreamingResponse
 from pathlib import Path
-import fitz
-from .schemas import PdfElement, PdfInfo, Block
-from .utils import open_file
+from .schemas import PdfElement, PdfInfo
+from .utils import get_pdf_info, get_pdf_element
+
 
 description = """
 Liseuse et recherche intelligente pour les autorités environnementales
@@ -12,17 +12,11 @@ API pour récupérer un fichier pdf et son contenu
 """
 
 
-app = FastAPI(title="LIRIAe API",
-              description=description)
+app = FastAPI(title="LIRIAe API", description=description)
 
 
-pdf_list = [
-    {
-        "id": 1,
-        "name": "test.pdf",
-        "n_pages": 241
-    }
-]
+# pdf_list = [{"id": 1, "name": "test.pdf", "n_pages": 241}]
+pdf_list = [get_pdf_info(pdf_id=1, pdf="test.pdf")]
 
 
 @app.post("/pdf", response_model=PdfInfo)
@@ -38,8 +32,10 @@ async def get_pdf(pdf_id: int):
     # raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
     # Get image from the database
     pdf_info = await get_pdf_info(pdf_id)
-    headers = {'Content-Disposition': 'attachment; filename="out.pdf"'}
-    return FileResponse(Path("data") / pdf_info["name"], headers=headers, media_type='application/pdf')
+    headers = {"Content-Disposition": 'attachment; filename="out.pdf"'}
+    return FileResponse(
+        Path("data") / pdf_info["name"], headers=headers, media_type="application/pdf"
+    )
     # def iterfile():
     #     with open_file(pdf_info["name"], 'rb') as pdf_file:
     #         yield from pdf_file
@@ -48,7 +44,7 @@ async def get_pdf(pdf_id: int):
 
 
 @app.get("/pdf/info/{pdf_id}", response_model=PdfInfo)
-async def get_pdf_info(pdf_id: int):
+async def get_PDF_info(pdf_id: int):
     """Return pdf file info"""
     return pdf_list[pdf_id - 1]
 
@@ -59,29 +55,22 @@ def list_pdfs():
     return pdf_list
 
 
-@app.get("/pdf_elements", response_model=list[PdfElement])
-def get_pdf_elements(pdf_id: str):
-    """Return all elements from a pdf"""
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
+# @app.get("/pdf_elements/{pdf_id}", response_model=list[PdfElement])
+# async def get_PDF_elements(pdf_id: int):
+#     """Return all elements from a pdf"""
+#     pdf_info = await get_PDF_info(pdf_id)
+#     return get_pdf_elements(pdf_info)
+#     # return [get_pdf_element(pdf_info, item_id, details=False) for item_id, _ in enumerate(pdf_info.toc)]
 
 
-@app.get("/pdf_elements/{item_id}", response_model=PdfElement)
-def get_pdf_element(pdf_id: str, item_id: str):
+@app.get("/pdf_element/{item_id}", response_model=PdfElement)
+async def get_PDF_element(pdf_id: int, item_id: int, details: bool = False):
     """Return an element from a pdf"""
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
-    return {}
+    return get_pdf_element(await get_PDF_info(pdf_id), item_id, details)
 
 
 # @app.get("/pdf_elements/details/{item_id}", response_model=PdfElementDetails)
-# def get_pdf_element_details(pdf_id: str, item_id: str):
+# def get_pdf_element_details(pdf_id: int, item_id: str):
 #     """Return details about pdf element: paragraphs, lines, word and the associated position, font, ..."""
 #     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
 #     return {}
-
-@app.get("/page_structure", response_model=list[Block])
-def get_page_structure(pdf_id: str, page_number: int):
-    pdf_info = get_pdf_info(pdf_id)
-    with open_file(pdf_info["name"]) as pdf_file:
-        with fitz.open(pdf_file) as doc:
-            page = doc.load_page(page_number)
-            return page.get_text("dict")["blocks"]
