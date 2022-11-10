@@ -21,13 +21,14 @@ pdf_list = [get_pdf_info(pdf_id=1, pdf="test.pdf")]
 
 @app.post("/pdf", response_model=PdfInfo)
 def upload_pdf(file: UploadFile):
+    "Not implemented"
     # TODO: add info as argument
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
     return {"filename": file.filename}
 
 
 @app.get("/pdf/{pdf_id}")
-async def get_pdf(pdf_id: int):
+async def get_pdf_by_id(pdf_id: int):
     """Return pdf file"""
     # raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
     # Get image from the database
@@ -44,7 +45,7 @@ async def get_pdf(pdf_id: int):
 
 
 @app.get("/pdf/info/{pdf_id}", response_model=PdfInfo)
-async def get_PDF_info(pdf_id: int):
+async def get_pdf_info_by_id(pdf_id: int):
     """Return pdf file info"""
     return pdf_list[pdf_id - 1]
 
@@ -58,4 +59,4 @@ def list_pdfs():
 @app.get("/pdf_element/{item_id}", response_model=PdfElement)
 async def get_PDF_element(pdf_id: int, item_id: int, details: bool = False):
     """Return an element from a pdf"""
-    return get_pdf_element(await get_PDF_info(pdf_id), item_id, details)
+    return get_pdf_element(await get_pdf_info_by_id(pdf_id), item_id, details)
