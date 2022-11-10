@@ -1,7 +1,9 @@
 from fastapi import FastAPI, status, UploadFile, HTTPException
 from fastapi.responses import FileResponse  # StreamingResponse
+from pathlib import Path
+import fitz
 from .schemas import PdfElement, PdfInfo, Block
-# from .utils import open_file
+from .utils import open_file
 
 description = """
 Liseuse et recherche intelligente pour les autorités environnementales
@@ -37,7 +39,7 @@ async def get_pdf(pdf_id: int):
     # Get image from the database
     pdf_info = await get_pdf_info(pdf_id)
     headers = {'Content-Disposition': 'attachment; filename="out.pdf"'}
-    return FileResponse(pdf_info["name"], headers=headers, media_type='application/pdf')
+    return FileResponse(Path("data") / pdf_info["name"], headers=headers, media_type='application/pdf')
     # def iterfile():
     #     with open_file(pdf_info["name"], 'rb') as pdf_file:
     #         yield from pdf_file
@@ -77,5 +79,9 @@ def get_pdf_element(pdf_id: str, item_id: str):
 #     return {}
 
 @app.get("/page_structure", response_model=list[Block])
-def get_page_structure(pdf_id: str, page: int):
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
+def get_page_structure(pdf_id: str, page_number: int):
+    pdf_info = get_pdf_info(pdf_id)
+    with open_file(pdf_info["name"]) as pdf_file:
+        with fitz.open(pdf_file) as doc:
+            page = doc.load_page(page_number)
+            return page.get_text("dict")["blocks"]
