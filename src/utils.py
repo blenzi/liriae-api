@@ -17,19 +17,19 @@ def open_file(filename, mode="r"):
     Returns:
         File object
     """
-    if False:  # "AWS_S3_ENDPOINT" in os.environ:
+    if "AWS_S3_ENDPOINT" in os.environ:
         # Create filesystem object
         S3_ENDPOINT_URL = "https://" + os.environ["AWS_S3_ENDPOINT"]
         fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": S3_ENDPOINT_URL})
-        return fs.open(f"projet-outil-ae/test/{filename}", mode=mode)
+        return fs.open(filename, mode=mode)
     else:
-        return open(f"data/{filename}", mode=mode)
+        return open(filename, mode=mode)
 
 
 @contextmanager
 def open_pdf(pdf: str) -> fitz.Document:
     with open_file(pdf, "rb") as pdf_file:
-        with fitz.open(pdf_file) as doc:
+        with fitz.open(stream=pdf_file.read()) as doc:
             yield doc
 
 
@@ -96,16 +96,17 @@ def get_pdf_info(pdf_id: int, pdf: str) -> PdfInfo:
                     break
             toc.append(toc_item)
         return PdfInfo(
-                id=pdf_id,
-                name=pdf,
-                n_pages=doc.page_count,
-                toc=toc,
-                n_toc_items=len(toc),
-            )
+            id=pdf_id,
+            name=pdf,
+            n_pages=doc.page_count,
+            toc=toc,
+            n_toc_items=len(toc),
+        )
 
 
 def get_all_titles(toc: list[TocItem], item: TocItem) -> list[str]:
     "Return all titles associated to a toc item (including all parents)"
+
     def get_titles(item):
         while item:
             yield item.title
@@ -156,7 +157,9 @@ def get_pdf_element(pdf_info: PdfInfo, element_id: int, details: bool = False):
 
     with open_pdf(pdf_info.name) as doc:
         text_blocks = []
-        for page_no in range(toc_item.page, next_item.page + 1 if next_item else pdf_info.n_pages):
+        for page_no in range(
+            toc_item.page, next_item.page + 1 if next_item else pdf_info.n_pages
+        ):
             page = doc.load_page(page_no)
             text_blocks.extend(
                 [
@@ -167,7 +170,12 @@ def get_pdf_element(pdf_info: PdfInfo, element_id: int, details: bool = False):
             )
         text = "\n".join(get_text_from_block(block) for block in text_blocks)
         all_titles = get_all_titles(pdf_info.toc, toc_item)
-        return PdfElement(blocks=text_blocks if details else [], text=text, all_titles=all_titles, **toc_item.__dict__)
+        return PdfElement(
+            blocks=text_blocks if details else [],
+            text=text,
+            all_titles=all_titles,
+            **toc_item.__dict__,
+        )
 
 
 # def get_pdf_elements(pdf_info: PdfInfo, details: bool = False) -> list[PdfElement]:

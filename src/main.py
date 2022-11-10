@@ -1,8 +1,7 @@
 from fastapi import FastAPI, status, UploadFile, HTTPException
-from fastapi.responses import FileResponse  # StreamingResponse
-from pathlib import Path
+from fastapi.responses import StreamingResponse
 from .schemas import PdfElement, PdfInfo, TocTreeItem
-from .utils import get_pdf_info, get_pdf_element
+from .utils import get_pdf_info, get_pdf_element, open_file
 
 
 description = """
@@ -15,8 +14,13 @@ API pour récupérer un fichier pdf et son contenu
 app = FastAPI(title="LIRIAe PDF API", description=description)
 
 
-# pdf_list = [{"id": 1, "name": "test.pdf", "n_pages": 241}]
-pdf_list = [get_pdf_info(pdf_id=1, pdf="test.pdf")]
+pdf_list = [
+    get_pdf_info(
+        pdf_id=0,
+        pdf="projet-outil-ae/test/19-021 - LODI_DAE_Volume 4_avec_annexes_indice 10 220301.pdf.pdf",
+        # pdf="data/test.pdf"
+    )
+]
 
 
 @app.post("/pdf", response_model=PdfInfo)
@@ -32,22 +36,24 @@ async def get_pdf_by_id(pdf_id: int):
     """Return pdf file"""
     # raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
     # Get image from the database
-    pdf_info = await get_pdf_info(pdf_id)
+    pdf_info = await get_pdf_info_by_id(pdf_id)
     headers = {"Content-Disposition": 'attachment; filename="out.pdf"'}
-    return FileResponse(
-        Path("data") / pdf_info["name"], headers=headers, media_type="application/pdf"
-    )
-    # def iterfile():
-    #     with open_file(pdf_info["name"], 'rb') as pdf_file:
-    #         yield from pdf_file
+    # return FileResponse("data/test.pdf", headers=headers, media_type="application/pdf")
 
-    # return StreamingResponse(iterfile(), headers=headers, media_type='application/pdf')
+    def iterfile():
+        with open_file(pdf_info.name, "rb") as pdf_file:
+            yield from pdf_file
+
+    return StreamingResponse(iterfile(), headers=headers, media_type="application/pdf")
 
 
 @app.get("/pdf/info/{pdf_id}", response_model=PdfInfo)
 async def get_pdf_info_by_id(pdf_id: int):
     """Return pdf file info"""
-    return pdf_list[pdf_id - 1]
+    try:
+        return pdf_list[pdf_id]
+    except IndexError:
+        raise HTTPException(status_code=404, detail="Item not found")
 
 
 @app.get("/pdf/toc_tree/{pdf_id}", response_model=list[TocTreeItem])
