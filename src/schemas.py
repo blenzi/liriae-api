@@ -12,6 +12,7 @@ class Bbox(BaseModel):
 
 class TocItem(_Position):
     id: int
+    parent_id: int = -1
     title: str
     level: int  # 1-based
     page: int  # 0-based as used when loading the page

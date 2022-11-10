@@ -86,15 +86,32 @@ def get_pdf_info(pdf_id: int, pdf: str) -> PdfInfo:
     """
     Return a PdfInfo object, with information about the PDF document.
     """
+    toc = []
     with open_pdf(pdf) as doc:
-        toc = [get_toc_item(item_id, item) for item_id, item in enumerate(doc.get_toc(simple=False))]
+        for item_id, item in enumerate(doc.get_toc(simple=False)):
+            toc_item = get_toc_item(item_id, item)
+            for item in reversed(toc):
+                if item.level < toc_item.level:
+                    toc_item.parent_id = item.id
+                    break
+            toc.append(toc_item)
         return PdfInfo(
-            id=pdf_id,
-            name=pdf,
-            n_pages=doc.page_count,
-            toc=toc,
-            n_toc_items=len(toc),
-        )
+                id=pdf_id,
+                name=pdf,
+                n_pages=doc.page_count,
+                toc=toc,
+                n_toc_items=len(toc),
+            )
+
+
+def get_all_titles(toc: list[TocItem], item: TocItem) -> list[str]:
+    "Return all titles associated to a toc item (including all parents)"
+    def get_titles(item):
+        while item:
+            yield item.title
+            item = toc[item.parent_id] if item.parent_id >= 0 else None
+
+    return list(get_titles(item))[::-1]
 
 
 # def get_toc(pdf: str, add_text_blocks=False) -> list[PdfElement]:
@@ -180,7 +197,8 @@ def get_pdf_element(pdf_info: PdfInfo, element_id: int, details: bool = False):
                 ]
             )
         text = "\n".join(get_text_from_block(block) for block in text_blocks)
-        return PdfElement(blocks=text_blocks if details else [], text=text, **toc_item.__dict__)
+        all_titles = get_all_titles(pdf_info.toc, toc_item)
+        return PdfElement(blocks=text_blocks if details else [], text=text, all_titles=all_titles, **toc_item.__dict__)
 
 
 # def get_pdf_elements(pdf_info: PdfInfo, details: bool = False) -> list[PdfElement]:
@@ -191,5 +209,5 @@ def get_pdf_element(pdf_info: PdfInfo, element_id: int, details: bool = False):
 #             text_blocks = get_page_content(page)
 #             text = "\n".join(get_text_from_block(block) for block in text_blocks)
 #             elements.append()
-    
+
 #     return PdfElement(text=get_text_from_block(block))
