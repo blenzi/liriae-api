@@ -114,37 +114,6 @@ def get_all_titles(toc: list[TocItem], item: TocItem) -> list[str]:
     return list(get_titles(item))[::-1]
 
 
-# def get_toc(pdf: str, add_text_blocks=False) -> list[PdfElement]:
-#     """
-#     Return a list with the table of contents of the PDF document.
-
-#     Args:
-#         pdf (str): PDF document
-#     """
-#     with open_pdf(pdf) as doc:
-#         toc = [
-
-#             pdf_element_from_toc(i, item)
-#             for i, item in enumerate(doc.get_toc(simple=False))
-#         ]
-#         page_count = doc.page_count
-
-#     all_titles = []
-#     for ititle, (title, next_title) in enumerate(
-#         pairwise(toc + [{}])
-#     ):  # add empty title for last one
-#         if add_text_blocks:
-#             text_blocks = list(get_text_blocks(doc, title, next_title))
-#             toc[ititle].text_blocks = text_blocks
-#             toc[ititle].text = "\n".join(i[-1] for i in toc[ititle].text_blocks)
-#         all_titles = [j for i, j in enumerate(all_titles) if i < title.level - 1] + [
-#             title.title
-#         ]
-#         toc[ititle].last_page = next_title.page if next_title else page_count
-#         toc[ititle].all_titles = all_titles
-#     return toc
-
-
 def get_text_block(block: dict) -> TextBlock:
     "Convert text block dictionary from PyMuPdf to TextBlock object"
     return TextBlock(
